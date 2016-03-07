@@ -10,7 +10,7 @@
  * adds a class to the last 'allowed' line of text so you can apply
  * text-overflow: ellipsis;
  */
-(function(factory) {
+(function (factory) {
   'use strict';
 
   if (typeof define === 'function' && define.amd) {
@@ -20,16 +20,16 @@
     // browser globals
     factory(jQuery);
   }
-}(function($) {
+} (function ($) {
   'use strict';
 
-  var namespace = 'ellipsis', 
-      span = '<span style="white-space: nowrap;">',
-      defaults = {
-        lines: 'auto',
-        ellipClass: 'ellip',
-        responsive: false
-      };
+  var namespace = 'ellipsis',
+    span = '<span style="white-space: nowrap;">',
+    defaults = {
+      lines: 'auto',
+      ellipClass: 'ellip',
+      responsive: false
+    };
 
   /**
    * Ellipsis()
@@ -39,51 +39,69 @@
    */
   function Ellipsis(el, opts) {
     var base = this,
-        currLine = 0,
-        lines = [],
-        setStartEllipAt,
-        startEllipAt,
-        resizeTimer,
-        currOffset,
-        lineHeight,
-        contHeight,
-        words;
+      currLine = 0,
+      lines = [],
+      setStartEllipAt,
+      startEllipAt,
+      currOffset,
+      lineHeight,
+      contHeight,
+      contWidth,
+      words;
 
     base.$cont = $(el);
     base.opts = $.extend({}, defaults, opts);
 
     /**
      * create() happens once when
-     * instance is created
+     * instance is created.
      */
     function create() {
       base.text = base.$cont.text();
       base.opts.ellipLineClass = base.opts.ellipClass + '-line';
-
       base.$el = $('<span class="' + base.opts.ellipClass + '" />');
       base.$el.text(base.text);
 
-      base.$cont.empty().append(base.$el);
-
+      // empty and make a block element
+      base.$cont.empty().append(base.$el).css('display', 'block');
+      
       init();
+    }
+
+     /**
+     * updateText() updates the text in the DOM
+     * with a span around the line that needs
+     * to be truncated.
+     *
+     * @param {Number} i
+     */
+    function updateText(nth) {
+      // add a span that wraps from nth
+      // word to the end of the string
+      words[nth] = '<span class="' + base.opts.ellipLineClass + '">' + words[nth];
+      words.push('</span>');
+
+      // update the DOM with
+      // our new string/markup
+      base.$el.html(words.join(' '));
     }
 
     /**
      * init()
      */
     function init() {
-
       // if they only want one line just add
       // the class and do nothing else
       if (typeof base.opts.lines === 'number' && base.opts.lines < 2) {
         base.$el.addClass(base.opts.ellipLineClass);
         return;
       }
-
+      
       contHeight = base.$cont.height();
+      contWidth = base.$cont.width();
 
       // if they only want to ellipsis the overflow
-      // then do nothing if there is no overflow      
+      // then do nothing if there is no overflow
       if (base.opts.lines === 'auto' && base.$el.prop('scrollHeight') <= contHeight) {
         return;
       }
@@ -104,28 +122,11 @@
       base.$el.find('span').each(setStartEllipAt);
 
       // startEllipAt could be 0 so make sure we're
-      // checking undefined instead of falsey
-      if (startEllipAt != null) {
+      // checking against a number instead of other 
+      // falsey values
+      if (typeof startEllipAt === 'number') {
         updateText(startEllipAt);
       }
-    }
-
-    /**
-     * updateText() updates the text in the DOM
-     * with a span around the line that needs
-     * to be truncated
-     *
-     * @param {Number} i
-     */
-    function updateText(nth) {
-      // add a span that wraps from nth
-      // word to the end of the string
-      words[nth] = '<span class="' + base.opts.ellipLineClass + '">' + words[nth];
-      words.push('</span>');
-
-      // update the DOM with
-      // our new string/markup
-      base.$el.html(words.join(' '));
     }
 
     // only define the method if it's required
@@ -139,9 +140,9 @@
        * @param {Number} i
        * @param {Node} word
        */
-      var setStartEllipByHeight = function(i, word) {
+      var setStartEllipByHeight = function (i, word) {
         var $word = $(word),
-            top = $word.position().top;
+          top = $word.position().top;
 
         lineHeight = lineHeight || $word.height();
 
@@ -174,35 +175,43 @@
     // only define the method if it's required
     if (typeof base.opts.lines === 'number' && base.opts.lines > 1) {
 
-        /**
-         * setStartEllipByLine() sets the start
-         * position to the first word in the line
-         * that was passed to opts. This forces
-         * the ellipsis on a specific line
-         * regardless of overflow
-         *
-         * @param {Number} i
-         * @param {Node} word
-         */
-        var setStartEllipByLine = function(i, word) {
-          var $word = $(word),
-              top = $word.position().top;
+      /**
+       * setStartEllipByLine() sets the start
+       * position to the first word in the line
+       * that was passed to opts. This forces
+       * the ellipsis on a specific line
+       * regardless of overflow
+       *
+       * @param {Number} i
+       * @param {Node} word
+       */
+      var setStartEllipByLine = function (i, word) {
+        var $word = $(word),
+          top = $word.position().top;
 
-          // if top isn't currOfset
-          // then we're on a new line
-          if (top !== currOffset) {
-            currOffset = top;
-            currLine += 1;
-          }
+        // if top isn't currOfset
+        // then we're on a new line
+        if (top !== currOffset) {
+          currOffset = top;
+          currLine += 1;
+        }
 
-          // if the word's currLine is equal
-          // to the line limit passed via options
-          // then start ellip from this
-          // word and stop looping
-          if (currLine === base.opts.lines) {
-            startEllipAt = i;
-            return false;
-          }
+        // if the word's currLine is equal
+        // to the line limit passed via options
+        // then start ellip from this
+        // word and stop looping
+        if (currLine === base.opts.lines) {
+          startEllipAt = i;
+          return false;
+        }
+
+        // if the word's width is greater than
+        // it's container then start the ellipsis
+        // on the previous line.
+        if ($word.width() >= contWidth) {
+          startEllipAt = i > 0 ? i - 1 : 0;
+          return false;
+        }
       };
 
       setStartEllipAt = setStartEllipByLine;
@@ -214,18 +223,17 @@
       /**
        * resize() resets necessary vars
        * and content and then re-initialises
-       * the Ellipsis script
+       * the Ellipsis script.
        */
-      var resize = function() {
+      var resize = function () {
         lines = [];
         currLine = 0;
         currOffset = null;
         startEllipAt = null;
         base.$el.html(base.text);
 
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(init, 100);
-      }
+        init();
+      };
 
       $(window).on('resize.' + namespace, resize);
     }
@@ -234,8 +242,8 @@
     create();
   }
 
-  $.fn[namespace] = function(opts) {
-    return this.each(function() {
+  $.fn[namespace] = function (opts) {
+    return this.each(function () {
       try {
         $(this).data(namespace, (new Ellipsis(this, opts)));
       } catch (err) {
